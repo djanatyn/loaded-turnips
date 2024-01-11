@@ -21,6 +21,21 @@ pub struct TurnipFaceChances {
     stitch: u32,
 }
 
+impl Default for TurnipFaceChances {
+    fn default() -> Self {
+        Self {
+            normal: 35,
+            unamused: 6,
+            line_eyes: 5,
+            circle_eyes: 3,
+            super_happy: 3,
+            winky: 4,
+            dot_eyes: 1,
+            stitch: 1,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct ItemChances {
     /// Default 2/6 chance.
@@ -31,12 +46,35 @@ pub struct ItemChances {
     beamsword: u32,
 }
 
+impl Default for ItemChances {
+    fn default() -> Self {
+        Self {
+            bobomb: 2,
+            mr_saturn: 3,
+            beamsword: 1,
+        }
+    }
+}
+
 #[derive(Debug)]
 pub struct VegetableChances {
+    /// Default 1/128 chance.
     chance_of_item: u32,
+    /// Default 127/128 chance.
     chance_of_turnip: u32,
     turnip_face_chances: TurnipFaceChances,
     item_chances: ItemChances,
+}
+
+impl Default for VegetableChances {
+    fn default() -> Self {
+        Self {
+            chance_of_item: 1,
+            chance_of_turnip: 127,
+            turnip_face_chances: Default::default(),
+            item_chances: Default::default(),
+        }
+    }
 }
 
 impl VegetableChances {
@@ -78,27 +116,7 @@ mod tests {
         let path = std::env::var("SSBM_ISO_PATH").unwrap();
         // fs::copy(&path, "modified.iso")?;
         let mut file = File::open("modified.iso")?;
-        let turnip_face_chances = TurnipFaceChances {
-            normal: 1,
-            unamused: 1,
-            line_eyes: 1,
-            circle_eyes: 1,
-            super_happy: 1,
-            winky: 1,
-            dot_eyes: 1,
-            stitch: 1,
-        };
-        let item_chances = ItemChances {
-            bobomb: 1,
-            mr_saturn: 1,
-            beamsword: 1,
-        };
-        let chances = VegetableChances {
-            chance_of_item: 1,
-            chance_of_turnip: 1,
-            turnip_face_chances,
-            item_chances,
-        };
+        let chances: VegetableChances = Default::default();
         Ok(chances.set(&mut file).unwrap())
     }
 }
