@@ -148,7 +148,7 @@ mod tests {
     #[test]
     fn gcm_header() -> std::io::Result<()> {
         let path = std::env::var("SSBM_ISO_PATH").unwrap();
-        let mut file = File::open("modified.iso")?;
+        let mut file = File::open(&path)?;
         let header = dbg!(GCMHeader::new(&mut file)?);
         assert_eq!(header.fst_offset, EXPECTED_FST_OFFSET);
         assert_eq!(header.fst_size, EXPECTED_FST_SIZE);
