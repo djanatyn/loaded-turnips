@@ -1,5 +1,4 @@
-use std::io::BufReader;
-use std::io::{Read, Write};
+use std::io::{Read, Seek, Write};
 
 #[derive(Debug)]
 pub struct TurnipFaceChances {
@@ -78,27 +77,49 @@ impl Default for VegetableChances {
 }
 
 impl VegetableChances {
+    /// Read chances from GALE01 NTSC v1.02 disk image.
+    fn get<R: Read>(melee: R) -> Self {
+        todo!()
+    }
+
     /// Modify GALE01 NTSC v1.02 disk image Peach Vegetable probabilities.
     fn set<W: Write>(&self, melee: W) -> Result<(), String> {
         todo!()
     }
 }
 
-#[derive(Debug)]
 /// https://www.gc-forever.com/yagcd/chap14.html#sec14.8.1
 pub struct GCMHeader {
     /// Offset to FST inside GCM
-    fst_offset: u32,
+    pub fst_offset: u32,
     /// Size of FST
-    fst_size: u32,
+    pub fst_size: u32,
 }
 
 impl GCMHeader {
-    pub const FST_OFFSET: u32 = 0x10;
-    pub const FST_SIZE_OFFSET: u32 = 0x14;
+    pub const FST_OFFSET: u32 = 0x424; // length = 0x4
+    pub const FST_SIZE_OFFSET: u32 = 0x428; // length = 0x4
 
-    fn new<R: Read>(melee: R) -> Self {
-        todo!()
+    fn new<R: Read + Seek>(mut melee: R) -> std::io::Result<Self> {
+        let mut fst_offset_bytes = [0; 4];
+        let mut fst_size_bytes = [0; 4];
+        melee.seek(std::io::SeekFrom::Start(Self::FST_OFFSET as u64))?;
+        melee.read_exact(&mut fst_offset_bytes)?;
+        melee.seek(std::io::SeekFrom::Start(Self::FST_SIZE_OFFSET as u64))?;
+        melee.read_exact(&mut fst_size_bytes)?;
+        Ok(Self {
+            fst_offset: u32::from_be_bytes(fst_offset_bytes),
+            fst_size: u32::from_be_bytes(fst_size_bytes),
+        })
+    }
+}
+
+impl std::fmt::Debug for GCMHeader {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("GCMHeader")
+            .field("fst_offset", &format_args!("0x{:x}", &self.fst_offset))
+            .field("fst_size", &format_args!("0x{:x}", &self.fst_size))
+            .finish()
     }
 }
 
@@ -107,9 +128,32 @@ pub struct FstEntry {}
 
 #[cfg(test)]
 mod tests {
-    use std::fs::{self, File};
-
     use super::*;
+    use std::fs::File;
+
+    const TURNIP_CHANCE_BYTES: [u8; 16] = [
+        0x23, 0x02, // normal
+        0x06, 0x02, // unamused
+        0x05, 0x02, // line eyes
+        0x03, 0x02, // circle eyes
+        0x03, 0x02, // super happy
+        0x04, 0x06, // winky
+        0x01, 0x0c, // dot eyes
+        0x01, 0x1e, // stitch
+    ];
+
+    const EXPECTED_FST_OFFSET: u32 = 0x456e00;
+    const EXPECTED_FST_SIZE: u32 = 0x7529;
+
+    #[test]
+    fn gcm_header() -> std::io::Result<()> {
+        let path = std::env::var("SSBM_ISO_PATH").unwrap();
+        let mut file = File::open("modified.iso")?;
+        let header = dbg!(GCMHeader::new(&mut file)?);
+        assert_eq!(header.fst_offset, EXPECTED_FST_OFFSET);
+        assert_eq!(header.fst_size, EXPECTED_FST_SIZE);
+        Ok(())
+    }
 
     #[test]
     fn modify_chances() -> std::io::Result<()> {
